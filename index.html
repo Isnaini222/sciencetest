@@ -1,0 +1,1813 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QUANTUM — Ujian Sains SMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=Unbounded:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ╔══════════════════════════════════════════════════════╗
+   ║  QUANTUM — DESIGN SYSTEM                            ║
+   ╚══════════════════════════════════════════════════════╝ */
+:root {
+  --ink:       #050810;
+  --ink2:      #0b0f1e;
+  --glass:     rgba(255,255,255,.03);
+  --glass2:    rgba(255,255,255,.06);
+  --rim:       rgba(255,255,255,.09);
+  --rim2:      rgba(255,255,255,.15);
+  --t1:        #eef1fa;
+  --t2:        #7b879e;
+  --t3:        #3a4153;
+
+  /* Subject colors */
+  --m: #00e5ff;  --mr: 0,229,255;   /* Matematika — electric cyan */
+  --f: #d946ef;  --fr: 217,70,239;  /* Fisika     — neon magenta  */
+  --k: #39ff8a;  --kr: 57,255,138;  /* Kimia      — acid green    */
+  --b: #ff8c00;  --br: 255,140,0;   /* Biologi    — amber fire    */
+
+  --ok:  #39ff8a;
+  --bad: #ff3366;
+
+  /* Active — switches per subject */
+  --a:  #00e5ff;
+  --ar: 0,229,255;
+
+  --ff-head: 'Unbounded', sans-serif;
+  --ff-body: 'Chakra Petch', sans-serif;
+  --ff-mono: 'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; scroll-behavior:smooth; }
+
+body {
+  font-family: var(--ff-body);
+  background: var(--ink);
+  color: var(--t1);
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ── GRAIN OVERLAY ── */
+body::after {
+  content:'';
+  position:fixed; inset:0; z-index:9999; pointer-events:none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity:.35;
+}
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  CUSTOM CURSOR                                      ║
+   ╚══════════════════════════════════════════════════════╝ */
+#c-core {
+  position:fixed; width:10px; height:10px; border-radius:50%;
+  background:var(--a); z-index:99999; pointer-events:none;
+  transform:translate(-50%,-50%);
+  box-shadow: 0 0 16px var(--a), 0 0 32px rgba(var(--ar),.4);
+  transition: background .3s, box-shadow .3s;
+}
+#c-halo {
+  position:fixed; width:38px; height:38px; border-radius:50%;
+  border:1.5px solid rgba(var(--ar),.6); z-index:99998; pointer-events:none;
+  transform:translate(-50%,-50%);
+  transition:border-color .3s, width .2s, height .2s;
+}
+#c-core.press { width:6px; height:6px; }
+#c-halo.press { width:48px; height:48px; opacity:.5; }
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  CANVAS                                             ║
+   ╚══════════════════════════════════════════════════════╝ */
+#cosmos { position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  SCREEN SYSTEM                                      ║
+   ╚══════════════════════════════════════════════════════╝ */
+.pg {
+  position:fixed; inset:0; z-index:10;
+  display:flex; align-items:center; justify-content:center;
+  padding:24px; overflow-y:auto;
+  opacity:0; pointer-events:none;
+  transition:opacity .5s cubic-bezier(.4,0,.2,1);
+}
+.pg.on { opacity:1; pointer-events:all; }
+#pg-quiz {
+  flex-direction:column; align-items:stretch;
+  padding:0; overflow:hidden;
+}
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  INTRO                                              ║
+   ╚══════════════════════════════════════════════════════╝ */
+.intro-wrap { text-align:center; position:relative; }
+
+/* Floating hexagons */
+.hex-field {
+  position:absolute; inset:-80px; pointer-events:none; overflow:hidden;
+}
+.hex {
+  position:absolute; opacity:0;
+  animation: hexFloat linear infinite;
+}
+.hex svg { display:block; }
+@keyframes hexFloat {
+  0%   { opacity:0; transform:translateY(60px) rotate(0deg); }
+  10%  { opacity:.4; }
+  90%  { opacity:.15; }
+  100% { opacity:0; transform:translateY(-120px) rotate(180deg); }
+}
+
+.eyebrow {
+  font-family:var(--ff-mono); font-size:.6rem; letter-spacing:6px;
+  text-transform:uppercase; color:var(--m);
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  margin-bottom:30px;
+  animation:rise .9s .1s both;
+}
+.eyebrow-line { flex:1; max-width:70px; height:1px; background:linear-gradient(90deg,transparent,var(--m)); }
+.eyebrow-line:last-child { transform:scaleX(-1); }
+
+.logo-mark {
+  font-family:var(--ff-head); font-weight:900;
+  font-size:clamp(4rem,13vw,9rem);
+  line-height:.88; letter-spacing:-6px;
+  position:relative; display:inline-block;
+  background:linear-gradient(140deg,#fff 0%,var(--m) 30%,var(--f) 60%,var(--k) 80%,var(--b) 100%);
+  background-size:250%;
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 50px rgba(0,229,255,.3));
+  animation:logoReveal 1s .15s cubic-bezier(.16,1,.3,1) both, logoShift 8s 1.2s ease infinite;
+}
+@keyframes logoReveal {
+  from { opacity:0; transform:scale(.65) translateY(50px) skewY(4deg); filter:blur(12px) drop-shadow(0 0 50px rgba(0,229,255,.3)); }
+  to   { opacity:1; transform:scale(1) translateY(0) skewY(0); filter:blur(0) drop-shadow(0 0 50px rgba(0,229,255,.3)); }
+}
+@keyframes logoShift { 0%,100%{background-position:0%} 50%{background-position:100%} }
+
+.logo-sub {
+  font-family:var(--ff-mono); font-size:clamp(.55rem,.9vw,.7rem); letter-spacing:10px;
+  text-transform:uppercase; color:var(--t3); margin-top:14px;
+  animation:rise .9s .35s both;
+}
+
+/* Subject Cards */
+.sub-row {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:12px;
+  max-width:760px; width:100%; margin:50px auto 44px;
+  animation:rise .9s .4s both;
+}
+@media(max-width:600px){ .sub-row { grid-template-columns:repeat(2,1fr); } }
+
+.sub-tile {
+  border:1px solid var(--rim); border-radius:14px;
+  padding:22px 14px; background:var(--glass);
+  backdrop-filter:blur(14px); position:relative; overflow:hidden;
+  transition:transform .35s cubic-bezier(.34,1.56,.64,1), border-color .3s, background .3s;
+  --tc: var(--m); --tr: var(--mr);
+}
+.sub-tile[data-s=f]{ --tc:var(--f); --tr:var(--fr); }
+.sub-tile[data-s=k]{ --tc:var(--k); --tr:var(--kr); }
+.sub-tile[data-s=b]{ --tc:var(--b); --tr:var(--br); }
+
+.sub-tile::before {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+  background:var(--tc); border-radius:0 0 14px 14px; opacity:.7;
+  transition: height .3s, opacity .3s;
+}
+.sub-tile::after {
+  content:''; position:absolute; inset:0; border-radius:14px;
+  background:radial-gradient(circle at 50% 100%, rgba(var(--tr),.1) 0%, transparent 70%);
+  opacity:0; transition:opacity .3s;
+}
+.sub-tile:hover { transform:translateY(-6px); border-color:var(--tc); background:rgba(var(--tr),.06); }
+.sub-tile:hover::before { height:100%; opacity:.04; }
+.sub-tile:hover::after { opacity:1; }
+
+.tile-icon { font-size:1.9rem; margin-bottom:10px; display:block; position:relative; z-index:1; }
+.tile-name {
+  font-family:var(--ff-mono); font-size:.62rem; letter-spacing:2px;
+  text-transform:uppercase; color:var(--tc); margin-bottom:4px;
+  position:relative; z-index:1;
+}
+.tile-count { font-size:.72rem; color:var(--t3); font-family:var(--ff-mono); position:relative; z-index:1; }
+
+/* CTA */
+.btn-start {
+  font-family:var(--ff-head); font-size:.8rem; font-weight:700;
+  letter-spacing:4px; text-transform:uppercase;
+  padding:18px 60px; border:none; border-radius:0;
+  background:transparent; color:var(--m);
+  position:relative; overflow:hidden;
+  clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);
+  transition:color .4s; cursor:none;
+  animation:rise .9s .55s both;
+}
+.btn-start::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,var(--m),var(--f));
+  transform:translateX(-110%); transition:transform .45s cubic-bezier(.16,1,.3,1);
+}
+.btn-start::after {
+  content:''; position:absolute; inset:0;
+  border:1.5px solid var(--m); clip-path:inherit;
+  transition:border-color .4s;
+}
+.btn-start:hover { color:#000; }
+.btn-start:hover::before { transform:translateX(0); }
+.btn-start:hover::after { border-color:transparent; }
+.btn-start span { position:relative; z-index:2; }
+
+.start-note {
+  font-family:var(--ff-mono); font-size:.58rem; letter-spacing:3px;
+  color:var(--t3); text-transform:uppercase; margin-top:16px;
+  animation:rise .9s .65s both;
+}
+
+/* Creator tag */
+.creator-tag {
+  margin-top:22px; display:flex; align-items:center; justify-content:center; gap:8px;
+  animation:rise .9s .75s both;
+}
+.creator-by {
+  font-family:var(--ff-mono); font-size:.58rem; letter-spacing:2px;
+  color:var(--t3); text-transform:uppercase;
+}
+.creator-name {
+  font-family:var(--ff-head); font-size:.72rem; font-weight:700; letter-spacing:3px;
+  color:var(--m); padding:5px 14px; border-radius:20px;
+  border:1px solid rgba(0,229,255,.35); background:rgba(0,229,255,.06);
+  animation:creatorPulse 3s ease infinite;
+}
+@keyframes creatorPulse {
+  0%,100%{ box-shadow:0 0 14px rgba(0,229,255,.18), 0 0 0 0 rgba(0,229,255,.0); }
+  50%    { box-shadow:0 0 28px rgba(0,229,255,.45), 0 0 0 4px rgba(0,229,255,.06); }
+}
+
+/* Fill-in special question */
+.fillin-wrap { margin-bottom:4px; }
+.fillin-input {
+  width:100%; background:var(--glass2);
+  border:1px solid var(--rim); border-bottom:2px solid var(--a);
+  border-radius:10px 10px 4px 4px;
+  padding:14px 20px; font-family:var(--ff-body);
+  font-size:1rem; color:var(--t1); outline:none; letter-spacing:.5px;
+  transition:background .3s, box-shadow .3s;
+  cursor:text;
+}
+.fillin-input:focus {
+  background:rgba(var(--ar),.05);
+  box-shadow:0 4px 20px rgba(var(--ar),.15);
+}
+.fillin-input::placeholder { color:var(--t3); }
+.fillin-input.locked { pointer-events:none; opacity:.7; }
+.fillin-hint {
+  margin-top:7px; font-family:var(--ff-mono); font-size:.58rem;
+  color:var(--t3); letter-spacing:1.5px;
+}
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  NAME SCREEN                                        ║
+   ╚══════════════════════════════════════════════════════╝ */
+.name-box { width:100%; max-width:460px; }
+.name-title {
+  font-family:var(--ff-head); font-size:clamp(1.8rem,5vw,2.8rem);
+  font-weight:700; line-height:1.1; margin-bottom:8px;
+}
+.name-title em { font-style:normal; color:var(--m); }
+.name-hint { font-size:.85rem; color:var(--t2); margin-bottom:34px; letter-spacing:.4px; }
+
+.field {
+  position:relative; margin-bottom:3px;
+}
+.field::after {
+  content:''; position:absolute; bottom:0; left:0; width:0; height:2px;
+  background:linear-gradient(90deg,var(--m),var(--f));
+  transition:width .5s cubic-bezier(.16,1,.3,1);
+}
+.field:focus-within::after { width:100%; }
+.name-input {
+  width:100%; background:var(--glass2);
+  border:1px solid var(--rim); border-bottom:none;
+  border-radius:10px 10px 0 0; padding:16px 20px;
+  font-family:var(--ff-body); font-size:1rem; color:var(--t1);
+  outline:none; letter-spacing:.5px;
+  transition:background .3s, border-color .3s;
+}
+.name-input:focus { background:rgba(0,229,255,.04); border-color:rgba(0,229,255,.2); }
+.name-input::placeholder { color:var(--t3); }
+
+.btn-enter {
+  width:100%; padding:16px; margin-top:3px;
+  font-family:var(--ff-head); font-size:.75rem; font-weight:700;
+  letter-spacing:4px; text-transform:uppercase;
+  background:linear-gradient(135deg,var(--m),var(--f));
+  color:#000; border-radius:0 0 10px 10px; border:none; cursor:none;
+  position:relative; overflow:hidden;
+  transition:transform .25s, box-shadow .25s;
+  clip-path:polygon(0 0,100% 0,calc(100% - 8px) 100%,8px 100%);
+}
+.btn-enter::before {
+  content:''; position:absolute; top:0; left:-80%; width:40%; height:100%;
+  background:rgba(255,255,255,.25); transform:skewX(-20deg);
+  transition:left .5s;
+}
+.btn-enter:hover { transform:translateY(-2px); box-shadow:0 10px 40px rgba(0,229,255,.25); }
+.btn-enter:hover::before { left:130%; }
+.btn-enter span { position:relative; z-index:1; }
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  QUIZ CHROME                                        ║
+   ╚══════════════════════════════════════════════════════╝ */
+.q-chrome {
+  position:relative; z-index:20; flex-shrink:0;
+  background:rgba(5,8,16,.9); backdrop-filter:blur(24px) saturate(1.5);
+  border-bottom:1px solid var(--rim);
+}
+
+/* Topbar */
+.q-topbar {
+  display:flex; align-items:center; gap:0;
+  height:54px; padding:0 28px;
+}
+.tb-logo {
+  font-family:var(--ff-head); font-size:1rem; font-weight:900;
+  letter-spacing:3px; color:var(--a);
+  text-shadow:0 0 20px rgba(var(--ar),.6);
+  transition:color .6s, text-shadow .6s;
+  margin-right:20px; white-space:nowrap; flex-shrink:0;
+}
+.tb-divider { width:1px; height:20px; background:var(--rim); margin-right:16px; flex-shrink:0; }
+.tb-subpill {
+  font-family:var(--ff-mono); font-size:.58rem; letter-spacing:2.5px;
+  text-transform:uppercase; padding:4px 11px; border-radius:3px;
+  border:1px solid rgba(var(--ar),.4); color:var(--a);
+  background:rgba(var(--ar),.08);
+  transition:all .6s; white-space:nowrap;
+}
+.tb-student {
+  font-family:var(--ff-mono); font-size:.62rem; color:var(--t2);
+  margin-left:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:160px;
+}
+.tb-right { margin-left:auto; display:flex; align-items:center; gap:12px; }
+.tb-score-live {
+  font-family:var(--ff-mono); font-size:.65rem; color:var(--t2); white-space:nowrap;
+}
+.tb-score-live span { color:var(--a); font-weight:500; transition:color .6s; }
+.tb-timer {
+  font-family:var(--ff-head); font-size:1rem; font-weight:600;
+  letter-spacing:2px; color:var(--t1); min-width:72px; text-align:right;
+}
+.tb-timer.warn { color:var(--bad); animation:timerBlink .5s infinite; }
+@keyframes timerBlink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+/* Progress bar */
+.q-pbar { height:3px; background:rgba(255,255,255,.05); overflow:hidden; }
+.q-pfill {
+  height:100%; width:0%;
+  background:linear-gradient(90deg,var(--m),var(--f),var(--k),var(--b));
+  box-shadow:0 0 10px rgba(var(--ar),.8);
+  transition:width .6s cubic-bezier(.4,0,.2,1);
+}
+
+/* Question nav dots */
+.q-nav {
+  display:flex; flex-wrap:wrap; gap:5px; padding:10px 28px 8px;
+  background:rgba(5,8,16,.5);
+  border-bottom:1px solid var(--rim);
+}
+.qd {
+  width:27px; height:27px; border-radius:5px;
+  border:1px solid var(--rim); background:var(--glass);
+  font-family:var(--ff-mono); font-size:.5rem; color:var(--t3);
+  display:flex; align-items:center; justify-content:center;
+  cursor:none; transition:all .2s; flex-shrink:0;
+}
+.qd.ans { background:rgba(57,255,138,.08); border-color:rgba(57,255,138,.3); color:var(--k); }
+.qd.now { border-color:var(--a); color:var(--a); background:rgba(var(--ar),.1);
+  box-shadow:0 0 10px rgba(var(--ar),.35); }
+.qd[data-s=m].now{ border-color:var(--m);color:var(--m);background:rgba(var(--mr),.1);box-shadow:0 0 10px rgba(var(--mr),.35); }
+.qd[data-s=f].now{ border-color:var(--f);color:var(--f);background:rgba(var(--fr),.1);box-shadow:0 0 10px rgba(var(--fr),.35); }
+.qd[data-s=k].now{ border-color:var(--k);color:var(--k);background:rgba(var(--kr),.1);box-shadow:0 0 10px rgba(var(--kr),.35); }
+.qd[data-s=b].now{ border-color:var(--b);color:var(--b);background:rgba(var(--br),.1);box-shadow:0 0 10px rgba(var(--br),.35); }
+
+/* Question body scroll area */
+.q-scroll {
+  flex:1; overflow-y:auto; padding:26px 28px 32px;
+  display:flex; justify-content:center;
+  position:relative; z-index:10;
+}
+.q-scroll::-webkit-scrollbar { width:4px; }
+.q-scroll::-webkit-scrollbar-thumb { background:var(--rim); border-radius:2px; }
+
+/* Subject color veil */
+.q-veil {
+  position:fixed; inset:0; z-index:9; pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 50% at 85% 40%, rgba(var(--ar),.06) 0%,transparent 70%),
+    radial-gradient(ellipse 35% 50% at 10% 90%, rgba(var(--ar),.035) 0%,transparent 70%);
+  transition:background 1.2s ease;
+}
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  QUESTION CARD                                      ║
+   ╚══════════════════════════════════════════════════════╝ */
+.q-card {
+  width:100%; max-width:880px;
+  border:1px solid rgba(var(--ar),.2);
+  border-radius:20px; padding:38px 40px 30px;
+  background:linear-gradient(135deg,var(--glass) 0%,rgba(var(--ar),.03) 100%);
+  backdrop-filter:blur(16px);
+  position:relative; overflow:hidden;
+  animation:cardIn .45s cubic-bezier(.16,1,.3,1) both;
+  transition:border-color .6s, background .6s;
+}
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(24px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+/* Top accent bar */
+.q-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--a) 0%, transparent 70%);
+  transition:background .6s;
+}
+/* Decorative bg glyph */
+.q-card-glyph {
+  position:absolute; right:-10px; top:-10px; font-size:7rem; opacity:.04;
+  pointer-events:none; user-select:none; line-height:1; color:var(--a);
+  transition:color .6s;
+}
+
+/* Meta row */
+.q-meta {
+  display:flex; align-items:center; gap:10px; margin-bottom:20px;
+  flex-wrap:wrap;
+}
+.q-badge-num {
+  font-family:var(--ff-mono); font-size:.58rem; color:var(--t3); letter-spacing:1.5px;
+}
+.q-badge-sub {
+  font-family:var(--ff-mono); font-size:.58rem; letter-spacing:2px;
+  text-transform:uppercase; padding:3px 9px; border-radius:3px;
+  border:1px solid rgba(var(--ar),.35); color:var(--a);
+  background:rgba(var(--ar),.07); transition:all .6s;
+}
+.q-badge-diff {
+  margin-left:auto; font-family:var(--ff-mono); font-size:.58rem; letter-spacing:1px;
+}
+.diff-m { color:var(--ok); }
+.diff-s { color:var(--b); }
+.diff-t { color:var(--bad); }
+
+/* Question text */
+.q-text {
+  font-size:1.07rem; line-height:1.78; color:var(--t1);
+  font-weight:400; margin-bottom:30px; letter-spacing:.2px;
+}
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  OPTIONS                                            ║
+   ╚══════════════════════════════════════════════════════╝ */
+.opts { display:flex; flex-direction:column; gap:9px; }
+
+.opt {
+  display:flex; align-items:flex-start; gap:14px;
+  padding:14px 18px; border-radius:11px;
+  border:1px solid var(--rim); background:var(--glass);
+  cursor:none; text-align:left; color:var(--t1);
+  font-family:var(--ff-body); font-size:.96rem; line-height:1.6;
+  position:relative; overflow:hidden;
+  transition:all .22s cubic-bezier(.4,0,.2,1);
+}
+.opt::before {
+  content:''; position:absolute; inset:0; border-radius:11px;
+  background:rgba(var(--ar),.07); opacity:0; transition:opacity .22s;
+}
+.opt:not(.locked):hover { border-color:rgba(var(--ar),.45); transform:translateX(6px); }
+.opt:not(.locked):hover::before { opacity:1; }
+.opt:not(.locked):hover .okey { background:rgba(var(--ar),.18); border-color:rgba(var(--ar),.55); color:var(--a); }
+
+.okey {
+  flex-shrink:0; width:32px; height:32px; border-radius:7px;
+  background:var(--glass2); border:1px solid var(--rim2);
+  font-family:var(--ff-mono); font-size:.7rem; color:var(--t2);
+  display:flex; align-items:center; justify-content:center;
+  transition:all .22s; margin-top:3px;
+}
+.otxt { flex:1; padding-top:4px; }
+
+/* States */
+.opt.picked {
+  border-color:var(--a); background:rgba(var(--ar),.08);
+  transform:translateX(6px);
+}
+.opt.picked .okey {
+  background:var(--a); color:#000; border-color:var(--a); font-weight:700;
+}
+.opt.picked::before { opacity:1; }
+
+.opt.correct  { border-color:var(--ok)  !important; background:rgba(57,255,138,.07) !important; }
+.opt.correct .okey { background:var(--ok) !important; color:#000 !important; border-color:var(--ok) !important; }
+
+.opt.wrong    { border-color:var(--bad) !important; background:rgba(255,51,102,.07) !important; }
+.opt.wrong .okey  { background:var(--bad) !important; color:#fff !important; border-color:var(--bad) !important; }
+
+/* Confirmation bar */
+.confirm-bar {
+  display:none; margin-top:18px;
+  align-items:center; justify-content:space-between; gap:14px;
+  padding:14px 18px; border-radius:11px;
+  background:rgba(var(--ar),.06);
+  border:1px solid rgba(var(--ar),.25);
+  animation:vIn .3s ease;
+}
+.confirm-bar.show { display:flex; }
+.confirm-hint {
+  font-family:var(--ff-mono); font-size:.65rem; color:var(--t2); letter-spacing:1px;
+  line-height:1.5;
+}
+.confirm-hint strong { color:var(--a); display:block; font-size:.7rem; margin-bottom:2px; }
+.confirm-actions { display:flex; gap:10px; flex-shrink:0; }
+
+.btn-change {
+  font-family:var(--ff-mono); font-size:.62rem; font-weight:500;
+  letter-spacing:2px; text-transform:uppercase;
+  padding:9px 18px; border-radius:7px; cursor:none;
+  background:transparent; color:var(--t2);
+  border:1px solid var(--rim2);
+  transition:all .2s;
+}
+.btn-change:hover { color:var(--t1); border-color:var(--rim2); background:var(--glass2); }
+
+.btn-confirm {
+  font-family:var(--ff-head); font-size:.65rem; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase;
+  padding:10px 22px; border-radius:7px; cursor:none; border:none;
+  background:linear-gradient(135deg,var(--a),rgba(var(--ar),.6));
+  color:#000; position:relative; overflow:hidden;
+  transition:transform .2s, box-shadow .2s;
+  clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);
+}
+.btn-confirm:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(var(--ar),.35); }
+.btn-confirm::before {
+  content:''; position:absolute; top:0; left:-80%; width:35%; height:100%;
+  background:rgba(255,255,255,.25); transform:skewX(-20deg); transition:left .4s;
+}
+.btn-confirm:hover::before { left:130%; }
+.btn-confirm span { position:relative; z-index:1; }
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  VERDICT & NEXT                                     ║
+   ╚══════════════════════════════════════════════════════╝ */
+.verdict {
+  display:none; margin-top:16px; padding:13px 18px;
+  border-radius:9px; font-size:.9rem; font-weight:500;
+  align-items:center; gap:10px; letter-spacing:.3px;
+  animation:vIn .3s ease;
+}
+@keyframes vIn { from{opacity:0;transform:translateY(7px)} to{opacity:1;transform:translateY(0)} }
+.verdict.show { display:flex; }
+.verdict.ok  { background:rgba(57,255,138,.08);  border:1px solid rgba(57,255,138,.25); color:var(--ok); }
+.verdict.bad { background:rgba(255,51,102,.08);  border:1px solid rgba(255,51,102,.25); color:var(--bad); }
+.v-ico { font-size:1.15rem; flex-shrink:0; }
+
+.btn-next {
+  display:none; margin-top:22px; width:100%; padding:15px;
+  font-family:var(--ff-head); font-size:.78rem; font-weight:700;
+  letter-spacing:4px; text-transform:uppercase;
+  background:linear-gradient(135deg,var(--a),rgba(var(--ar),.5));
+  color:#000; border:none; border-radius:8px; cursor:none;
+  position:relative; overflow:hidden;
+  transition:transform .25s, box-shadow .25s;
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+}
+.btn-next.show { display:block; animation:rise .3s ease; }
+.btn-next::before {
+  content:''; position:absolute; top:0; left:-80%; width:35%; height:100%;
+  background:rgba(255,255,255,.22); transform:skewX(-20deg);
+  transition:left .4s;
+}
+.btn-next:hover { transform:translateY(-2px); box-shadow:0 10px 32px rgba(var(--ar),.3); }
+.btn-next:hover::before { left:130%; }
+.btn-next span { position:relative; z-index:1; }
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  RESULT                                             ║
+   ╚══════════════════════════════════════════════════════╝ */
+#pg-result {
+  flex-direction:column; align-items:center; gap:36px;
+  padding:48px 24px; text-align:center;
+  overflow-y:auto;
+}
+#pg-result::-webkit-scrollbar { width:4px; }
+#pg-result::-webkit-scrollbar-thumb { background:var(--rim); border-radius:2px; }
+
+.res-eyebrow {
+  font-family:var(--ff-mono); font-size:.6rem; letter-spacing:5px;
+  text-transform:uppercase; color:var(--t3); animation:rise .7s both;
+}
+.res-name {
+  font-family:var(--ff-head); font-weight:800;
+  font-size:clamp(2rem,5vw,3.5rem); line-height:1.05;
+  animation:rise .7s .1s both;
+}
+.res-name span { color:var(--m); }
+
+/* Score ring */
+.score-ring {
+  position:relative; width:200px; height:200px; margin:0 auto;
+  animation:ringIn .9s .25s cubic-bezier(.34,1.4,.64,1) both;
+}
+@keyframes ringIn {
+  from { opacity:0; transform:scale(.3) rotate(-180deg); }
+  to   { opacity:1; transform:scale(1) rotate(0); }
+}
+.ring-svg { width:100%; height:100%; transform:rotate(-90deg); }
+.ring-bg  { fill:none; stroke:rgba(255,255,255,.05); stroke-width:9; }
+.ring-fg  {
+  fill:none; stroke-width:9; stroke-linecap:round;
+  stroke:var(--m);
+  stroke-dasharray:534; stroke-dashoffset:534;
+  filter:drop-shadow(0 0 8px var(--m));
+  transition:stroke-dashoffset 1.6s cubic-bezier(.4,0,.2,1) .4s, stroke .5s;
+}
+.ring-center {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.ring-num {
+  font-family:var(--ff-head); font-size:3.8rem; font-weight:900;
+  line-height:1; color:#fff;
+  text-shadow:0 0 30px rgba(0,229,255,.4);
+}
+.ring-of { font-family:var(--ff-mono); font-size:.58rem; color:var(--t3); letter-spacing:3px; margin-top:2px; }
+
+/* Grade plate */
+.grade-plate {
+  display:inline-block; font-family:var(--ff-head); font-size:.8rem;
+  font-weight:700; letter-spacing:3px; padding:9px 26px;
+  border-radius:3px; animation:rise .7s .45s both;
+  clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+}
+
+/* Breakdown grid */
+.bd-grid {
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:14px; max-width:660px; width:100%;
+  animation:rise .7s .38s both;
+}
+@media(max-width:480px){ .bd-grid { grid-template-columns:1fr; } }
+
+.bd-card {
+  background:var(--glass); border:1px solid var(--rim);
+  border-radius:14px; padding:22px 20px; text-align:left;
+  position:relative; overflow:hidden;
+}
+.bd-card::after {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--tc); border-radius:14px 0 0 14px;
+}
+.bd-card[data-s=m]{ --tc:var(--m); --tr:var(--mr); }
+.bd-card[data-s=f]{ --tc:var(--f); --tr:var(--fr); }
+.bd-card[data-s=k]{ --tc:var(--k); --tr:var(--kr); }
+.bd-card[data-s=b]{ --tc:var(--b); --tr:var(--br); }
+
+.bd-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.bd-name { font-family:var(--ff-mono); font-size:.6rem; letter-spacing:3px; text-transform:uppercase; color:var(--tc); }
+.bd-score { font-family:var(--ff-head); font-size:1.15rem; font-weight:700; color:#fff; }
+.bd-score small { font-size:.72rem; color:var(--t3); font-family:var(--ff-mono); }
+.bd-bar { height:5px; background:rgba(255,255,255,.05); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+.bd-fill { height:100%; background:var(--tc); border-radius:3px; width:0%;
+  box-shadow:0 0 8px var(--tc); transition:width 1.4s cubic-bezier(.4,0,.2,1); }
+.bd-pct { font-family:var(--ff-mono); font-size:.58rem; color:var(--t3); }
+
+/* Answer review */
+.review-wrap { max-width:660px; width:100%; animation:rise .7s .5s both; }
+.review-title { font-family:var(--ff-mono); font-size:.6rem; letter-spacing:4px; text-transform:uppercase; color:var(--t3); margin-bottom:12px; text-align:left; }
+.review-pips { display:flex; flex-wrap:wrap; gap:7px; }
+.r-pip {
+  width:36px; height:36px; border-radius:7px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--ff-mono); font-size:.58rem;
+  border:1px solid var(--rim); background:var(--glass); color:var(--t3);
+  transition:transform .2s;
+}
+.r-pip:hover { transform:scale(1.12); }
+.r-pip.ok  { background:rgba(57,255,138,.09);  border-color:rgba(57,255,138,.4);  color:var(--ok); }
+.r-pip.bad { background:rgba(255,51,102,.09);  border-color:rgba(255,51,102,.4);  color:var(--bad); }
+.r-pip.skip{ background:rgba(255,255,255,.04); border-color:rgba(255,255,255,.12); color:var(--t3); }
+
+/* Result action buttons */
+.res-btns { display:flex; flex-wrap:wrap; gap:14px; justify-content:center; animation:rise .7s .6s both; }
+.rb {
+  font-family:var(--ff-head); font-size:.72rem; font-weight:700;
+  letter-spacing:3px; text-transform:uppercase;
+  padding:14px 34px; border-radius:6px; border:none; cursor:none;
+  transition:transform .2s, box-shadow .2s;
+  clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%);
+}
+.rb:hover { transform:translateY(-3px); }
+.rb.pri { background:linear-gradient(135deg,var(--m),var(--f)); color:#000; }
+.rb.pri:hover { box-shadow:0 12px 36px rgba(0,229,255,.28); }
+.rb.sec { background:var(--glass2); color:var(--t1); border:1px solid var(--rim2); }
+
+/* ╔══════════════════════════════════════════════════════╗
+   ║  UTILITIES                                          ║
+   ╚══════════════════════════════════════════════════════╝ */
+@keyframes rise {
+  from { opacity:0; transform:translateY(24px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* Particle / confetti */
+.par,.cfp { position:fixed; pointer-events:none; z-index:9990; }
+.par { border-radius:50%; }
+.cfp { border-radius:2px; }
+
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--rim); border-radius:3px; }
+</style>
+</head>
+<body>
+
+<!-- Canvas -->
+<canvas id="cosmos"></canvas>
+
+<!-- Cursor -->
+<div id="c-core"></div>
+<div id="c-halo"></div>
+
+<!-- ═══════════════════════════════════
+     INTRO
+═══════════════════════════════════ -->
+<div class="pg on" id="pg-intro">
+  <div class="intro-wrap">
+    <!-- Floating hex decorations -->
+    <div class="hex-field" id="hexField"></div>
+
+    <div class="eyebrow">
+      <div class="eyebrow-line"></div>
+      Platform Ujian Digital · SMA Kelas X–XII
+      <div class="eyebrow-line"></div>
+    </div>
+
+    <h1 class="logo-mark">QUANTUM</h1>
+    <p class="logo-sub">Science Beyond Boundaries</p>
+
+    <div class="sub-row">
+      <div class="sub-tile" data-s="m">
+        <span class="tile-icon">∑</span>
+        <div class="tile-name">Matematika</div>
+        <div class="tile-count">// 15 soal</div>
+      </div>
+      <div class="sub-tile" data-s="f">
+        <span class="tile-icon">⚛</span>
+        <div class="tile-name">Fisika</div>
+        <div class="tile-count">// 15 soal</div>
+      </div>
+      <div class="sub-tile" data-s="k">
+        <span class="tile-icon">⬡</span>
+        <div class="tile-name">Kimia</div>
+        <div class="tile-count">// 15 soal</div>
+      </div>
+      <div class="sub-tile" data-s="b">
+        <span class="tile-icon">🧬</span>
+        <div class="tile-name">Biologi</div>
+        <div class="tile-count">// 15 soal</div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="toName()"><span>MULAI UJIAN</span></button>
+    <p class="start-note">60 soal · 90 menit · pilihan ganda A/B/C/D</p>
+    <div class="creator-tag">
+      <span class="creator-by">dibuat dengan 💙 oleh</span>
+      <span class="creator-name">munnnn666</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     NAME
+═══════════════════════════════════ -->
+<div class="pg" id="pg-name">
+  <div class="name-box">
+    <h2 class="name-title">Siapa <em>kamu?</em></h2>
+    <p class="name-hint">Masukkan nama sebelum ujian dimulai</p>
+    <div class="field">
+      <input class="name-input" id="nameInp" type="text"
+        placeholder="Nama lengkap kamu…" autocomplete="off"
+        onkeydown="if(event.key==='Enter')startQuiz()">
+    </div>
+    <button class="btn-enter" onclick="startQuiz()"><span>LANJUTKAN →</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     QUIZ
+═══════════════════════════════════ -->
+<div class="pg" id="pg-quiz">
+  <div class="q-veil" id="qVeil"></div>
+
+  <!-- Chrome: topbar + progress + nav -->
+  <div class="q-chrome">
+    <div class="q-topbar">
+      <div class="tb-logo" id="tbLogo">QUANTUM</div>
+      <div class="tb-divider"></div>
+      <div class="tb-subpill" id="tbSub">MATEMATIKA</div>
+      <div class="tb-student" id="tbStudent"></div>
+      <div class="tb-right">
+        <div class="tb-score-live">Benar: <span id="tbScore">0</span>/60</div>
+        <div class="tb-timer" id="tbTimer">90:00</div>
+      </div>
+    </div>
+    <div class="q-pbar"><div class="q-pfill" id="pfill"></div></div>
+    <div class="q-nav" id="qNav"></div>
+  </div>
+
+  <!-- Question scroll -->
+  <div class="q-scroll">
+    <div class="q-card" id="qCard">
+      <div class="q-card-glyph" id="cardGlyph">∑</div>
+      <div class="q-meta">
+        <span class="q-badge-num" id="qNum">SOAL 01/60</span>
+        <span class="q-badge-sub" id="qSub">MATEMATIKA</span>
+        <span class="q-badge-diff" id="qDiff">● SEDANG</span>
+      </div>
+      <p class="q-text" id="qText">…</p>
+      <div class="opts" id="qOpts"></div>
+      <div class="verdict" id="verdict">
+        <span class="v-ico" id="vIco"></span>
+        <span id="vTxt"></span>
+      </div>
+      <div class="confirm-bar" id="confirmBar">
+        <div class="confirm-hint">
+          <strong id="confirmLabel">Pilihan: A</strong>
+          Yakin dengan jawabanmu?
+        </div>
+        <div class="confirm-actions">
+          <button class="btn-change" onclick="cancelPick()">GANTI</button>
+          <button class="btn-confirm" onclick="confirmAnswer()"><span>KONFIRMASI ✓</span></button>
+        </div>
+      </div>
+      <button class="btn-next" id="btnNext" onclick="nextQ()"><span>SOAL BERIKUTNYA →</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════
+     RESULT
+═══════════════════════════════════ -->
+<div class="pg" id="pg-result">
+  <p class="res-eyebrow">Hasil Ujian QUANTUM</p>
+  <h2 class="res-name" id="resName">Siswa <span>Berprestasi</span></h2>
+
+  <div style="animation:rise .7s .2s both">
+    <div class="score-ring">
+      <svg class="ring-svg" viewBox="0 0 180 180">
+        <circle class="ring-bg" cx="90" cy="90" r="85"/>
+        <circle class="ring-fg" id="ringFg" cx="90" cy="90" r="85"/>
+      </svg>
+      <div class="ring-center">
+        <div class="ring-num" id="ringNum">0</div>
+        <div class="ring-of">NILAI / 100</div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="grade-plate" id="gradePlate">A+</div>
+    </div>
+  </div>
+
+  <div class="bd-grid">
+    <div class="bd-card" data-s="m">
+      <div class="bd-row">
+        <div class="bd-name">Matematika</div>
+        <div class="bd-score" id="bdM">0 <small>/15</small></div>
+      </div>
+      <div class="bd-bar"><div class="bd-fill" id="bfM"></div></div>
+      <div class="bd-pct" id="bpM">0 benar · 0%</div>
+    </div>
+    <div class="bd-card" data-s="f">
+      <div class="bd-row">
+        <div class="bd-name">Fisika</div>
+        <div class="bd-score" id="bdF">0 <small>/15</small></div>
+      </div>
+      <div class="bd-bar"><div class="bd-fill" id="bfF"></div></div>
+      <div class="bd-pct" id="bpF">0 benar · 0%</div>
+    </div>
+    <div class="bd-card" data-s="k">
+      <div class="bd-row">
+        <div class="bd-name">Kimia</div>
+        <div class="bd-score" id="bdK">0 <small>/15</small></div>
+      </div>
+      <div class="bd-bar"><div class="bd-fill" id="bfK"></div></div>
+      <div class="bd-pct" id="bpK">0 benar · 0%</div>
+    </div>
+    <div class="bd-card" data-s="b">
+      <div class="bd-row">
+        <div class="bd-name">Biologi</div>
+        <div class="bd-score" id="bdB">0 <small>/15</small></div>
+      </div>
+      <div class="bd-bar"><div class="bd-fill" id="bfB"></div></div>
+      <div class="bd-pct" id="bpB">0 benar · 0%</div>
+    </div>
+  </div>
+
+  <div class="review-wrap">
+    <div class="review-title">Rekap Jawaban</div>
+    <div class="review-pips" id="reviewPips"></div>
+  </div>
+
+  <div class="res-btns">
+    <button class="rb pri" onclick="location.reload()">COBA LAGI</button>
+    <button class="rb sec" onclick="toIntro()">BERANDA</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   CURSOR ENGINE
+════════════════════════════════════════════ */
+const CORE = document.getElementById('c-core');
+const HALO = document.getElementById('c-halo');
+let mx=0, my=0, hx=0, hy=0;
+
+document.addEventListener('mousemove', e => {
+  mx=e.clientX; my=e.clientY;
+  CORE.style.left = mx+'px'; CORE.style.top = my+'px';
+});
+document.addEventListener('mousedown', ()=>{ CORE.classList.add('press'); HALO.classList.add('press'); });
+document.addEventListener('mouseup',   ()=>{ CORE.classList.remove('press'); HALO.classList.remove('press'); });
+
+(function haloRaf(){
+  hx += (mx-hx)*.1; hy += (my-hy)*.1;
+  HALO.style.left = hx+'px'; HALO.style.top = hy+'px';
+  requestAnimationFrame(haloRaf);
+})();
+
+/* ════════════════════════════════════════════
+   COSMOS CANVAS — Deep space particle field
+════════════════════════════════════════════ */
+const CV = document.getElementById('cosmos');
+const CX = CV.getContext('2d');
+let W, H, stars=[], drifters=[], frame=0;
+
+function resizeCv(){
+  W=CV.width=innerWidth; H=CV.height=innerHeight;
+  stars=[]; drifters=[];
+  // Stars
+  for(let i=0;i<280;i++) stars.push({
+    x:Math.random()*W, y:Math.random()*H,
+    r:Math.random()*1.3+.15,
+    ph:Math.random()*Math.PI*2,
+    spd:Math.random()*.018+.004,
+    vy:Math.random()*.22+.04
+  });
+  // Floating particles
+  for(let i=0;i<55;i++){
+    const cols=[
+      [0,229,255],[217,70,239],[57,255,138],[255,140,0]
+    ];
+    const c=cols[Math.floor(Math.random()*4)];
+    drifters.push({
+      x:Math.random()*W, y:Math.random()*H,
+      vx:(Math.random()-.5)*.35, vy:(Math.random()-.5)*.35,
+      r:Math.random()*2.4+.6, o:Math.random()*.3+.08,
+      c:c
+    });
+  }
+}
+
+// Active color for nebula
+let nebulaColor = [0,229,255];
+function setNebulaColor(rgb){ nebulaColor = rgb; }
+
+function drawCosmos(){
+  CX.clearRect(0,0,W,H);
+  frame++;
+
+  // Nebulae
+  const nebSrc = [[W*.15,H*.25],[W*.88,H*.65],[W*.5,H*.9],[W*.08,H*.75]];
+  const nebClr = [[0,229,255],[217,70,239],[57,255,138],[255,140,0]];
+  nebClr.forEach((c,i)=>{
+    const g=CX.createRadialGradient(nebSrc[i][0],nebSrc[i][1],0,nebSrc[i][0],nebSrc[i][1],W*.3);
+    g.addColorStop(0,`rgba(${c.join(',')},0.045)`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    CX.fillStyle=g; CX.fillRect(0,0,W,H);
+  });
+
+  // Active subject nebula pulse
+  const pulse = .5+Math.sin(frame*.015)*.5;
+  const ag=CX.createRadialGradient(W*.75,H*.3,0,W*.75,H*.3,W*.45);
+  ag.addColorStop(0,`rgba(${nebulaColor.join(',')},${.05*pulse})`);
+  ag.addColorStop(1,'rgba(0,0,0,0)');
+  CX.fillStyle=ag; CX.fillRect(0,0,W,H);
+
+  // Grid
+  CX.strokeStyle='rgba(255,255,255,.018)'; CX.lineWidth=1;
+  for(let x=0;x<W;x+=88){ CX.beginPath(); CX.moveTo(x,0); CX.lineTo(x,H); CX.stroke(); }
+  for(let y=0;y<H;y+=88){ CX.beginPath(); CX.moveTo(0,y); CX.lineTo(W,y); CX.stroke(); }
+
+  // Stars
+  stars.forEach(s=>{
+    s.ph+=s.spd; s.y-=s.vy;
+    if(s.y<-3){ s.y=H+3; s.x=Math.random()*W; }
+    const a=(Math.sin(s.ph)*.45+.55)*.8;
+    CX.beginPath(); CX.arc(s.x,s.y,s.r,0,Math.PI*2);
+    CX.fillStyle=`rgba(255,255,255,${a})`; CX.fill();
+  });
+
+  // Drifters
+  drifters.forEach(d=>{
+    d.x+=d.vx; d.y+=d.vy;
+    if(d.x<-5)d.x=W+5; if(d.x>W+5)d.x=-5;
+    if(d.y<-5)d.y=H+5; if(d.y>H+5)d.y=-5;
+    CX.beginPath(); CX.arc(d.x,d.y,d.r,0,Math.PI*2);
+    CX.fillStyle=`rgba(${d.c.join(',')},${d.o})`; CX.fill();
+  });
+
+  // Scan line
+  const sl=(frame*1.4)%H;
+  const slg=CX.createLinearGradient(0,sl-18,0,sl+2);
+  slg.addColorStop(0,'rgba(0,229,255,0)');
+  slg.addColorStop(1,'rgba(0,229,255,.04)');
+  CX.fillStyle=slg; CX.fillRect(0,sl-18,W,20);
+
+  requestAnimationFrame(drawCosmos);
+}
+window.addEventListener('resize',resizeCv);
+resizeCv(); drawCosmos();
+
+/* ════════════════════════════════════════════
+   FLOATING HEX FIELD (intro)
+════════════════════════════════════════════ */
+(function buildHex(){
+  const field=document.getElementById('hexField');
+  const cols=['rgba(0,229,255','rgba(217,70,239','rgba(57,255,138','rgba(255,140,0'];
+  for(let i=0;i<12;i++){
+    const h=document.createElement('div');
+    h.className='hex';
+    const s=30+Math.random()*50;
+    const c=cols[Math.floor(Math.random()*4)];
+    const dur=8+Math.random()*12;
+    h.style.cssText=`left:${Math.random()*100}%;top:${80+Math.random()*40}%;animation-duration:${dur}s;animation-delay:${Math.random()*8}s`;
+    h.innerHTML=`<svg width="${s}" height="${s*.87}" viewBox="0 0 60 52">
+      <polygon points="30,0 60,15 60,37 30,52 0,37 0,15"
+        fill="none" stroke="${c},.35)" stroke-width="1.2"/>
+    </svg>`;
+    field.appendChild(h);
+  }
+})();
+
+/* ════════════════════════════════════════════
+   QUESTION BANK — 60 SOAL
+════════════════════════════════════════════ */
+const QDB = [
+/* ── MATEMATIKA 1-15 ────────────────────────────────────────────────── */
+{s:'m',n:'Matematika',g:'∑',diff:0,
+ q:'Diketahui f(x) = 4x³ − 6x² + 2x − 5. Nilai f′(x) adalah…',
+ o:['12x² − 12x + 2','12x² − 6x + 2','4x² − 6x + 2','12x³ − 12x² + 2'],a:0},
+
+{s:'m',n:'Matematika',g:'∑',diff:0,
+ q:'Hasil dari lim(x→3) (x² − 9)/(x − 3) adalah…',
+ o:['0','3','6','9'],a:2},
+
+{s:'m',n:'Matematika',g:'∑',diff:1,
+ q:'Nilai integral ∫₀² (3x² + 4x − 1) dx adalah…',
+ o:['10','14','16','18'],a:1},
+
+{s:'m',n:'Matematika',g:'∑',diff:0,
+ q:'Akar-akar persamaan 3x² − 7x + 2 = 0 adalah…',
+ o:['x = 2 dan x = ⅓','x = 2 dan x = −⅓','x = −2 dan x = ⅓','x = ½ dan x = 2'],a:0},
+
+{s:'m',n:'Matematika',g:'∑',diff:0,
+ q:'Suku ke-12 barisan aritmetika 5, 9, 13, 17, … adalah…',
+ o:['45','47','49','51'],a:2},
+
+{s:'m',n:'Matematika',g:'∑',diff:1,
+ q:'Determinan matriks A = [[2, 3], [−1, 4]] adalah…',
+ o:['5','8','11','14'],a:2},
+
+{s:'m',n:'Matematika',g:'∑',diff:1,
+ q:'Nilai log₃(81) − log₂(32) adalah…',
+ o:['−1','0','1','2'],a:0},
+
+{s:'m',n:'Matematika',g:'∑',diff:2,
+ q:'Jika sin α = 3/5 dan α di kuadran II, nilai cos α adalah…',
+ o:['4/5','−4/5','3/4','−3/4'],a:1},
+
+{s:'m',n:'Matematika',g:'∑',diff:1,
+ q:'Banyaknya cara memilih 4 orang dari 9 orang (tanpa urutan) adalah… cara.',
+ o:['84','112','126','144'],a:2},
+
+{s:'m',n:'Matematika',g:'∑',diff:1,
+ q:'Persamaan lingkaran berpusat (−2, 3) dan r = 5 adalah…',
+ o:['(x+2)²+(y−3)²=5','(x−2)²+(y+3)²=25','(x+2)²+(y−3)²=25','(x−2)²+(y−3)²=25'],a:2},
+
+{s:'m',n:'Matematika',g:'∑',diff:0,
+ fillin:true,
+ q:'Jika x + y = bahagia, dengan y = dirimu. Maka apa yang paling masuk akal untuk variabel x?',
+ o:[],a:-1,
+ validAnswers:['dirimu','isnaini','munnnn666','munnn666']},
+
+{s:'m',n:'Matematika',g:'∑',diff:2,
+ q:'Nilai maksimum f(x) = −2x² + 8x + 3 adalah…',
+ o:['9','11','13','15'],a:1},
+
+{s:'m',n:'Matematika',g:'∑',diff:2,
+ q:'Jika A = [[1,2],[3,4]] dan B = [[2,0],[1,3]], maka AB adalah…',
+ o:['[[4,6],[10,12]]','[[3,4],[9,12]]','[[2,6],[10,12]]','[[4,6],[9,12]]'],a:0},
+
+{s:'m',n:'Matematika',g:'∑',diff:1,
+ q:'Nilai 2log 16 + 2log 4 − 2log 8 adalah…',
+ o:['2','3','4','5'],a:2},
+
+{s:'m',n:'Matematika',g:'∑',diff:1,
+ q:'Turunan kedua f(x) = 5x⁴ − 3x³ + 2x² − x + 7 adalah…',
+ o:['60x² − 18x + 4','20x³ − 9x² + 4x − 1','60x² − 18x + 2','20x³ − 9x + 4'],a:0},
+
+/* ── FISIKA 16-30 ──────────────────────────────────────────────────── */
+{s:'f',n:'Fisika',g:'⚛',diff:0,
+ q:'Sebuah benda bermassa 8 kg mengalami percepatan 5 m/s². Gaya yang bekerja pada benda adalah…',
+ o:['30 N','35 N','40 N','45 N'],a:2},
+
+{s:'f',n:'Fisika',g:'⚛',diff:0,
+ q:'Benda bermassa 10 kg dilempar vertikal ke atas dengan v₀ = 20 m/s (g=10 m/s²). Tinggi maksimumnya adalah…',
+ o:['10 m','15 m','20 m','25 m'],a:2},
+
+{s:'f',n:'Fisika',g:'⚛',diff:1,
+ q:'Dua benda bermassa 3 kg dan 5 kg bergerak searah dengan kecepatan 6 m/s dan 2 m/s. Setelah bertumbukan tidak elastis sempurna, kecepatan keduanya adalah…',
+ o:['3 m/s','3.5 m/s','4 m/s','4.5 m/s'],a:0},
+
+{s:'f',n:'Fisika',g:'⚛',diff:1,
+ q:'Energi potensial pegas dengan konstanta k = 400 N/m yang tertekan 0,05 m adalah…',
+ o:['0,25 J','0,5 J','1 J','2 J'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:0,
+ q:'Pada rangkaian seri, resistor 4 Ω, 6 Ω, dan 10 Ω dihubungkan ke baterai 40 V. Arus yang mengalir adalah…',
+ o:['1 A','2 A','2,5 A','4 A'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:1,
+ q:'Frekuensi gelombang bunyi adalah 680 Hz, cepat rambat di udara 340 m/s. Panjang gelombangnya adalah…',
+ o:['0,25 m','0,5 m','1 m','2 m'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:1,
+ q:'Benda bermassa 2 kg bergerak melingkar dengan r = 0,5 m dan kecepatan linier 4 m/s. Percepatan sentripetalnya adalah…',
+ o:['16 m/s²','24 m/s²','32 m/s²','40 m/s²'],a:2},
+
+{s:'f',n:'Fisika',g:'⚛',diff:1,
+ q:'Sebuah kawat panjang 0,4 m mengalir arus 3 A di medan magnet 0,5 T (tegak lurus). Gaya Lorentz yang bekerja adalah…',
+ o:['0,3 N','0,6 N','0,8 N','1,2 N'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:2,
+ q:'Kapasitor keping sejajar luas A = 0,02 m², jarak d = 0,004 m (ε₀ = 8,85×10⁻¹² F/m). Kapasitansinya adalah…',
+ o:['22,1 pF','44,3 pF','88,6 pF','17,7 pF'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:0,
+ q:'Hukum Ohm menyatakan hubungan antara tegangan (V), arus (I), dan hambatan (R). Pernyataan yang benar adalah…',
+ o:['V = I/R','V = IR','I = VR','R = VI'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:1,
+ q:'Transformator step-down: lilitan primer 2000, sekunder 200. Tegangan primer 220 V. Tegangan sekunder adalah…',
+ o:['11 V','22 V','44 V','110 V'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:2,
+ q:'Massa benda 4 kg pada ketinggian 25 m (g=10 m/s²) lalu dilepas. Kecepatan saat 5 m di atas tanah adalah…',
+ o:['15 m/s','20 m/s','25 m/s','30 m/s'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:1,
+ q:'Taraf intensitas bunyi 10⁻⁷ W/m² (I₀ = 10⁻¹² W/m²) adalah…',
+ o:['40 dB','50 dB','60 dB','70 dB'],a:1},
+
+{s:'f',n:'Fisika',g:'⚛',diff:2,
+ q:'Pada efek Doppler, sumber bunyi bergerak mendekati pendengar diam dengan v_s = 20 m/s, f = 680 Hz, v_udara = 340 m/s. Frekuensi yang didengar adalah…',
+ o:['680 Hz','720 Hz','724 Hz','760 Hz'],a:2},
+
+{s:'f',n:'Fisika',g:'⚛',diff:0,
+ q:'Prinsip kerja mesin Carnot menyatakan bahwa efisiensi mesin panas bergantung pada…',
+ o:['Jenis bahan bakar','Suhu reservoir panas dan dingin','Tekanan kerja','Volume silinder'],a:1},
+
+/* ── KIMIA 31-45 ─────────────────────────────────────────────────── */
+{s:'k',n:'Kimia',g:'⬡',diff:0,
+ q:'Dalam tabel periodik, unsur dengan konfigurasi elektron 2,8,18,7 terletak pada periode dan golongan…',
+ o:['Periode 3, Gol. VIIA','Periode 4, Gol. VIIA','Periode 3, Gol. VIA','Periode 4, Gol. VIA'],a:1},
+
+{s:'k',n:'Kimia',g:'⬡',diff:0,
+ q:'Massa molar asam sulfat H₂SO₄ (H=1, S=32, O=16) adalah…',
+ o:['80 g/mol','96 g/mol','98 g/mol','100 g/mol'],a:2},
+
+{s:'k',n:'Kimia',g:'⬡',diff:1,
+ q:'pH larutan HCl 0,001 M adalah…',
+ o:['1','2','3','4'],a:2},
+
+{s:'k',n:'Kimia',g:'⬡',diff:1,
+ q:'Bilangan oksidasi S dalam Na₂SO₄ adalah…',
+ o:['+2','+4','+6','+8'],a:2},
+
+{s:'k',n:'Kimia',g:'⬡',diff:0,
+ q:'Larutan CH₃COOH 0,1 M (Ka = 10⁻⁵). Nilai pH larutan tersebut adalah…',
+ o:['2','3','4','5'],a:1},
+
+{s:'k',n:'Kimia',g:'⬡',diff:1,
+ q:'Reaksi: 2KMnO₄ + 16HCl → 2KCl + 2MnCl₂ + 5Cl₂ + 8H₂O. Unsur yang mengalami oksidasi adalah…',
+ o:['Mn','K','Cl','H'],a:2},
+
+{s:'k',n:'Kimia',g:'⬡',diff:0,
+ q:'Ikatan yang terbentuk antara ion Na⁺ dan Cl⁻ disebut ikatan…',
+ o:['Kovalen polar','Kovalen nonpolar','Ionik','Logam'],a:2},
+
+{s:'k',n:'Kimia',g:'⬡',diff:1,
+ q:'Pada reaksi kesetimbangan N₂ + 3H₂ ⇌ 2NH₃, jika tekanan dinaikkan maka kesetimbangan bergeser ke…',
+ o:['Kiri (ke NH₃ terurai)','Kanan (ke NH₃ terbentuk)','Tidak bergeser','Bergantung suhu'],a:1},
+
+{s:'k',n:'Kimia',g:'⬡',diff:2,
+ q:'Sebanyak 5,4 g Al (Ar=27) direaksikan dengan asam klorida berlebih. Volume gas H₂ pada STP adalah…',
+ o:['2,24 L','4,48 L','6,72 L','8,96 L'],a:2},
+
+{s:'k',n:'Kimia',g:'⬡',diff:1,
+ q:'Senyawa organik CH₃−CH₂−OH termasuk golongan senyawa…',
+ o:['Asam karboksilat','Alkohol','Aldehid','Eter'],a:1},
+
+{s:'k',n:'Kimia',g:'⬡',diff:1,
+ q:'Pada elektrolisis larutan CuSO₄ dengan elektroda Pt, di katoda terjadi…',
+ o:['Cu²⁺ + 2e⁻ → Cu','2H₂O → O₂ + 4H⁺ + 4e⁻','SO₄²⁻ → SO₃ + O','Cu → Cu²⁺ + 2e⁻'],a:0},
+
+{s:'k',n:'Kimia',g:'⬡',diff:2,
+ q:'Tetapan hasil kali kelarutan (Ksp) AgCl = 10⁻¹⁰. Kelarutan AgCl dalam air murni adalah…',
+ o:['10⁻⁵ mol/L','10⁻⁴ mol/L','10⁻³ mol/L','10⁻² mol/L'],a:0},
+
+{s:'k',n:'Kimia',g:'⬡',diff:0,
+ q:'Gas mulia paling banyak digunakan dalam lampu pijar karena sifatnya yang…',
+ o:['Reaktif','Mudah terbakar','Inert (tidak reaktif)','Berwarna cerah'],a:2},
+
+{s:'k',n:'Kimia',g:'⬡',diff:1,
+ q:'Larutan penyangga (buffer) terbentuk dari campuran…',
+ o:['Asam kuat + basa kuat','Asam lemah + garamnya','Asam kuat + garamnya','Basa kuat + garamnya'],a:1},
+
+{s:'k',n:'Kimia',g:'⬡',diff:2,
+ q:'Entalpi pembentukan standar CO₂ = −393,5 kJ/mol dan H₂O = −285,8 kJ/mol. ΔH pembakaran metana (CH₄) = −890,3 kJ/mol. ΔHf° CH₄ adalah…',
+ o:['−74,8 kJ/mol','−211,0 kJ/mol','+74,8 kJ/mol','+211,0 kJ/mol'],a:0},
+
+/* ── BIOLOGI 46-60 ────────────────────────────────────────────────── */
+{s:'b',n:'Biologi',g:'🧬',diff:0,
+ q:'Proses sintesis protein diawali dengan transkripsi di inti sel. Pada proses ini, yang terbentuk adalah…',
+ o:['DNA baru','mRNA','tRNA','Ribosom'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:0,
+ q:'Organel sel yang menghasilkan ATP melalui respirasi seluler aerob adalah…',
+ o:['Ribosom','Kloroplas','Mitokondria','Nukleus'],a:2},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Pembelahan meiosis menghasilkan 4 sel anakan. Komposisi kromosom setiap sel anakan terhadap induk adalah…',
+ o:['2n (diploid)','n (haploid)','3n','4n'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:0,
+ q:'Enzim pencernaan yang berfungsi mengubah amilum (pati) menjadi maltosa adalah…',
+ o:['Lipase','Pepsin','Amilase','Tripsin'],a:2},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Percobaan Mendel: Pptt × ppTT (Pp=warna, Tt=tinggi). Perbandingan fenotip F₂ adalah…',
+ o:['9:3:3:1','3:1','1:2:1','1:1:1:1'],a:0},
+
+{s:'b',n:'Biologi',g:'🧬',diff:0,
+ q:'Jaringan tumbuhan yang berfungsi mengangkut hasil fotosintesis ke seluruh bagian tumbuhan adalah…',
+ o:['Xilem','Floem','Meristem','Parenkim'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Pada respirasi aerob, tahap yang berlangsung di matriks mitokondria adalah…',
+ o:['Glikolisis','Siklus Krebs','Rantai transpor elektron','Fermentasi'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Hormon yang dihasilkan oleh kelenjar tiroid dan berperan dalam mengatur metabolisme tubuh adalah…',
+ o:['Insulin','Tiroksin','Adrenalin','Kortisol'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:2,
+ q:'Mutasi insersi (penyisipan) satu basa nitrogen ke dalam rantai DNA akan menyebabkan…',
+ o:['Penghentian sintesis protein saja','Perubahan semua kodon sesudah titik penyisipan (frameshift)','Penggantian satu asam amino saja','Duplikasi rantai DNA'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:0,
+ q:'Dalam ekosistem, organisme yang mampu mengubah energi cahaya menjadi energi kimia disebut…',
+ o:['Konsumen','Dekomposer','Produsen','Karnivora'],a:2},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Mekanisme kekebalan tubuh spesifik melibatkan sel limfosit B yang akan berdiferensiasi menjadi…',
+ o:['Sel T sitotoksik','Sel plasma penghasil antibodi','Sel NK (Natural Killer)','Makrofag'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Proses osmosis adalah perpindahan molekul air dari daerah…',
+ o:['Hipertonik ke hipotonik','Hipotonik ke hipertonik','Bertekanan tinggi ke rendah (semua zat)','Bersuhu tinggi ke rendah'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:2,
+ q:'Pada buta warna yang bersifat X-linked resesif, seorang wanita carier (XᴮXᵇ) menikah dengan pria normal (XᴮY). Peluang anak laki-laki buta warna adalah…',
+ o:['0%','25%','50%','75%'],a:2},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Berdasarkan teori evolusi Darwin, organ vestigial seperti tulang ekor pada manusia membuktikan bahwa…',
+ o:['Manusia adalah keturunan langsung monyet','Ada organ yang mengalami kemunduran fungsi karena tidak digunakan','Organ tersebut akan hilang dalam satu generasi','Proses evolusi sudah berhenti'],a:1},
+
+{s:'b',n:'Biologi',g:'🧬',diff:1,
+ q:'Bakteri Rhizobium yang bersimbiosis di akar tanaman legum berperan dalam siklus nitrogen dengan cara…',
+ o:['Denitrifikasi: mengubah NO₃⁻ menjadi N₂','Nitrifikasi: mengubah NH₃ menjadi NO₂⁻','Fiksasi nitrogen: mengubah N₂ menjadi NH₃','Amonifikasi: mengurai protein menjadi NH₃'],a:2},
+];
+
+/* ════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════ */
+let qi=0, answers={}, sName='', tLeft=5400, timerID=null, running=false;
+const SC = {m:0,f:0,k:0,b:0};
+
+const CFG = {
+  m:{ label:'MATEMATIKA', color:'#00e5ff', rgb:[0,229,255],   cssV:'--m', glyph:'∑' },
+  f:{ label:'FISIKA',     color:'#d946ef', rgb:[217,70,239],  cssV:'--f', glyph:'⚛' },
+  k:{ label:'KIMIA',      color:'#39ff8a', rgb:[57,255,138],  cssV:'--k', glyph:'⬡' },
+  b:{ label:'BIOLOGI',    color:'#ff8c00', rgb:[255,140,0],   cssV:'--b', glyph:'🧬'},
+};
+const DIFF_LABEL = ['MUDAH','SEDANG','SULIT'];
+const DIFF_CLS   = ['diff-m','diff-s','diff-t'];
+
+/* ════════════════════════════════════════════
+   PAGE TRANSITIONS
+════════════════════════════════════════════ */
+let curPage = 'pg-intro';
+function goPage(id){
+  document.getElementById(curPage).classList.remove('on');
+  setTimeout(()=>{
+    curPage=id;
+    const el=document.getElementById(id);
+    el.style.display='flex';
+    setTimeout(()=>el.classList.add('on'),20);
+  },300);
+}
+
+/* ════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════ */
+function toName(){ goPage('pg-name'); setTimeout(()=>document.getElementById('nameInp').focus(),550); }
+function toIntro(){ location.reload(); }
+
+/* ════════════════════════════════════════════
+   START QUIZ
+════════════════════════════════════════════ */
+function startQuiz(){
+  const n = document.getElementById('nameInp').value.trim();
+  if(!n){
+    const el=document.getElementById('nameInp');
+    el.style.borderColor='var(--bad)'; el.style.background='rgba(255,51,102,.05)';
+    el.placeholder='⚠ Nama tidak boleh kosong!';
+    setTimeout(()=>{ el.style.borderColor=''; el.style.background=''; el.placeholder='Nama lengkap kamu…'; },1800);
+    return;
+  }
+  sName=n; qi=0;
+  SC.m=SC.f=SC.k=SC.b=0;
+  Object.keys(answers).forEach(k=>delete answers[k]);
+  tLeft=5400; running=true;
+
+  document.getElementById('tbStudent').textContent=n.toUpperCase();
+  goPage('pg-quiz');
+  buildNav();
+  startTimer();
+  renderQ();
+}
+
+/* ════════════════════════════════════════════
+   NAVIGATOR
+════════════════════════════════════════════ */
+function buildNav(){
+  const nav=document.getElementById('qNav'); nav.innerHTML='';
+  QDB.forEach((q,i)=>{
+    const d=document.createElement('div');
+    d.className='qd'; d.dataset.s=q.s; d.dataset.i=i; d.id=`qd${i}`;
+    d.textContent=i+1; d.onclick=()=>{qi=i;renderQ();};
+    nav.appendChild(d);
+  });
+}
+function syncNav(){
+  QDB.forEach((_,i)=>{
+    const d=document.getElementById(`qd${i}`);
+    if(!d) return;
+    d.classList.remove('ans','now');
+    if(answers[i]!==undefined) d.classList.add('ans');
+    if(i===qi) d.classList.add('now');
+  });
+  document.getElementById(`qd${qi}`)?.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+
+/* ════════════════════════════════════════════
+   RENDER QUESTION
+════════════════════════════════════════════ */
+function renderQ(){
+  const q = QDB[qi];
+  const cfg = CFG[q.s];
+
+  // Animate card
+  const card=document.getElementById('qCard');
+  card.style.animation='none'; void card.offsetHeight;
+  card.style.animation='cardIn .45s cubic-bezier(.16,1,.3,1) both';
+
+  // Apply subject color to CSS vars + canvas
+  applyColor(q.s);
+
+  // Glyph
+  document.getElementById('cardGlyph').textContent = cfg.glyph;
+
+  // Meta
+  document.getElementById('qNum').textContent=`SOAL ${String(qi+1).padStart(2,'0')}/60`;
+  const subEl=document.getElementById('qSub');
+  subEl.textContent=cfg.label;
+  subEl.style.color=cfg.color;
+  subEl.style.borderColor=`rgba(${cfg.rgb.join(',')},0.38)`;
+  subEl.style.background=`rgba(${cfg.rgb.join(',')},0.07)`;
+
+  const dEl=document.getElementById('qDiff');
+  dEl.textContent=`● ${DIFF_LABEL[q.diff]}`;
+  dEl.className=`q-badge-diff ${DIFF_CLS[q.diff]}`;
+
+  // Question
+  document.getElementById('qText').textContent=q.q;
+
+  // Options / Fill-in
+  const opts=document.getElementById('qOpts'); opts.innerHTML='';
+
+  if(q.fillin){
+    // Special fill-in question
+    const wrap=document.createElement('div');
+    wrap.className='fillin-wrap';
+
+    const inp=document.createElement('input');
+    inp.className='fillin-input'; inp.id='fillinInput';
+    inp.type='text'; inp.placeholder='Ketik jawabanmu di sini…';
+    inp.autocomplete='off';
+    if(answers[qi]!==undefined){
+      inp.value=answers[qi];
+      inp.classList.add('locked');
+    }
+    inp.onkeydown=e=>{ if(e.key==='Enter' && answers[qi]===undefined) submitFillin(q); };
+    inp.oninput=()=>{
+      // Show confirm bar only when there's text
+      const bar=document.getElementById('confirmBar');
+      const val=inp.value.trim();
+      if(val && answers[qi]===undefined){
+        bar.classList.add('show');
+        document.getElementById('confirmLabel').textContent=`Jawabanmu: "${val}"`;
+      } else {
+        bar.classList.remove('show');
+      }
+    };
+
+    const hint=document.createElement('p');
+    hint.className='fillin-hint'; hint.textContent='✎  Isian singkat — ketik lalu klik KONFIRMASI';
+
+    wrap.appendChild(inp); wrap.appendChild(hint);
+    opts.appendChild(wrap);
+  } else {
+    // Normal MCQ
+    ['A','B','C','D'].forEach((ltr,i)=>{
+      const btn=document.createElement('button');
+      btn.className='opt'; btn.dataset.i=i;
+      if(answers[qi]!==undefined){
+        btn.classList.add('locked');
+        if(i===answers[qi] && i===q.a)  btn.classList.add('correct');
+        else if(i===answers[qi] && i!==q.a) btn.classList.add('wrong');
+        else if(i===q.a && answers[qi]!==undefined) btn.classList.add('correct');
+      }
+      btn.innerHTML=`<div class="okey">${ltr}</div><div class="otxt">${q.o[i]}</div>`;
+      btn.onclick=()=>pick(i, btn, q);
+      opts.appendChild(btn);
+    });
+  }
+
+  // Reset confirm bar on every render
+  pendingIdx = null;
+  document.getElementById('confirmBar').classList.remove('show');
+
+  // Verdict
+  const v=document.getElementById('verdict');
+  if(answers[qi]!==undefined){
+    if(q.fillin){
+      const isOk=q.validAnswers.some(a=>a===answers[qi].toLowerCase().trim());
+      showVerdict(isOk, q, true);
+    } else {
+      showVerdict(answers[qi]===q.a, q);
+    }
+    showNext();
+  } else {
+    v.className='verdict';
+    document.getElementById('btnNext').classList.remove('show');
+  }
+
+  // Progress
+  const done=Object.keys(answers).length;
+  document.getElementById('pfill').style.width=`${done/60*100}%`;
+  document.getElementById('tbScore').textContent=Object.values(SC).reduce((a,b)=>a+b,0);
+
+  syncNav();
+}
+
+/* ════════════════════════════════════════════
+   APPLY SUBJECT COLOR
+════════════════════════════════════════════ */
+function applyColor(s){
+  const cfg=CFG[s];
+  const root=document.documentElement;
+  root.style.setProperty('--a',  cfg.color);
+  root.style.setProperty('--ar', cfg.rgb.join(','));
+
+  CORE.style.background=cfg.color;
+  CORE.style.boxShadow=`0 0 16px ${cfg.color}, 0 0 32px rgba(${cfg.rgb.join(',')},0.4)`;
+  HALO.style.borderColor=`rgba(${cfg.rgb.join(',')},0.6)`;
+
+  document.getElementById('tbLogo').style.color=cfg.color;
+  document.getElementById('tbLogo').style.textShadow=`0 0 20px rgba(${cfg.rgb.join(',')},0.6)`;
+  document.getElementById('tbSub').textContent=cfg.label;
+  document.getElementById('tbSub').style.color=cfg.color;
+  document.getElementById('tbSub').style.borderColor=`rgba(${cfg.rgb.join(',')},0.38)`;
+  document.getElementById('tbSub').style.background=`rgba(${cfg.rgb.join(',')},0.07)`;
+  document.getElementById('tbScore').style.color=cfg.color;
+
+  setNebulaColor(cfg.rgb);
+}
+
+/* ════════════════════════════════════════════
+   PICK ANSWER — Step 1: highlight only
+════════════════════════════════════════════ */
+let pendingIdx = null;
+
+function pick(idx, btn, q){
+  // If already confirmed/locked, ignore
+  if(answers[qi]!==undefined) return;
+
+  pendingIdx = idx;
+
+  // Clear previous highlight
+  document.querySelectorAll('.opt').forEach(b=>b.classList.remove('picked'));
+
+  // Highlight selected
+  btn.classList.add('picked');
+
+  // Show confirm bar
+  const bar = document.getElementById('confirmBar');
+  bar.classList.add('show');
+  document.getElementById('confirmLabel').textContent =
+    `Pilihan: ${['A','B','C','D'][idx]} — ${q.o[idx].length > 40 ? q.o[idx].slice(0,40)+'…' : q.o[idx]}`;
+
+  // Vibrate cursor slightly
+  CORE.style.transform='translate(-50%,-50%) scale(1.5)';
+  setTimeout(()=>CORE.style.transform='translate(-50%,-50%) scale(1)',180);
+}
+
+function cancelPick(){
+  // Deselect and hide confirm bar
+  document.querySelectorAll('.opt').forEach(b=>b.classList.remove('picked'));
+  document.getElementById('confirmBar').classList.remove('show');
+  pendingIdx = null;
+}
+
+function confirmAnswer(){
+  const q = QDB[qi];
+  if(q.fillin){
+    submitFillin(q);
+    return;
+  }
+  if(pendingIdx === null) return;
+  const idx = pendingIdx;
+  const correct = idx === q.a;
+
+  answers[qi] = idx;
+  pendingIdx = null;
+
+  // Hide confirm bar
+  document.getElementById('confirmBar').classList.remove('show');
+
+  // Lock all options
+  document.querySelectorAll('.opt').forEach(b=>{
+    b.classList.remove('picked');
+    b.classList.add('locked');
+  });
+
+  // Mark correct / wrong
+  const optBtns = document.querySelectorAll('.opt');
+  optBtns[idx].classList.add(correct?'correct':'wrong');
+  if(!correct) optBtns[q.a].classList.add('correct');
+
+  if(correct) SC[q.s]++;
+
+  showVerdict(correct, q);
+  burst(optBtns[idx], correct?'#39ff8a':'#ff3366');
+  beep(correct?780:220, correct?.12:.18);
+  showNext();
+  document.getElementById('pfill').style.width=`${Object.keys(answers).length/60*100}%`;
+  document.getElementById('tbScore').textContent=Object.values(SC).reduce((a,b)=>a+b,0);
+  document.getElementById(`qd${qi}`)?.classList.add('ans');
+}
+
+function submitFillin(q){
+  const inp=document.getElementById('fillinInput');
+  if(!inp) return;
+  const val=inp.value.trim();
+  if(!val) return;
+
+  answers[qi]=val;
+  inp.classList.add('locked');
+  document.getElementById('confirmBar').classList.remove('show');
+
+  const isOk=q.validAnswers.some(a=>a===val.toLowerCase().trim());
+  if(isOk) SC[q.s]++;
+
+  showVerdict(isOk, q, true);
+  burst(inp, isOk?'#39ff8a':'#ff3366');
+  beep(isOk?780:220, isOk?.12:.18);
+  showNext();
+  document.getElementById('pfill').style.width=`${Object.keys(answers).length/60*100}%`;
+  document.getElementById('tbScore').textContent=Object.values(SC).reduce((a,b)=>a+b,0);
+  document.getElementById(`qd${qi}`)?.classList.add('ans');
+}
+
+function showVerdict(ok, q, isFillin=false){
+  const v=document.getElementById('verdict');
+  document.getElementById('vIco').textContent=ok?'✓':'✕';
+  if(isFillin){
+    document.getElementById('vTxt').textContent=ok
+      ?'Jawaban benar! Hati tidak pernah berbohong. 💙'
+      :`Hmm… jawaban yang diterima: dirimu, Isnaini, atau munnnn666 ✨`;
+  } else {
+    document.getElementById('vTxt').textContent=ok
+      ?'Jawaban benar! Luar biasa.'
+      :`Jawaban kurang tepat. Yang benar: ${['A','B','C','D'][q.a]}`;
+  }
+  v.className='verdict show '+(ok?'ok':'bad');
+}
+function showNext(){
+  const bn=document.getElementById('btnNext');
+  bn.classList.add('show');
+  bn.querySelector('span').textContent=qi<QDB.length-1?'SOAL BERIKUTNYA →':'LIHAT HASIL →';
+}
+
+/* ════════════════════════════════════════════
+   NEXT
+════════════════════════════════════════════ */
+function nextQ(){
+  if(qi<QDB.length-1){ qi++; renderQ(); document.getElementById('pg-quiz').scrollTo({top:0,behavior:'smooth'}); }
+  else finish();
+}
+
+/* ════════════════════════════════════════════
+   TIMER
+════════════════════════════════════════════ */
+function startTimer(){
+  clearInterval(timerID);
+  timerID=setInterval(()=>{
+    if(!running) return;
+    tLeft--;
+    const m=Math.floor(tLeft/60), s=tLeft%60;
+    const el=document.getElementById('tbTimer');
+    el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    el.classList.toggle('warn',tLeft<=300);
+    if(tLeft<=0){clearInterval(timerID);finish();}
+  },1000);
+}
+
+/* ════════════════════════════════════════════
+   FINISH
+════════════════════════════════════════════ */
+function finish(){
+  running=false; clearInterval(timerID);
+  const total=SC.m+SC.f+SC.k+SC.b;
+  const val=Math.round(total/60*100);
+
+  goPage('pg-result');
+
+  // Name
+  const parts=sName.trim().split(' ');
+  if(parts.length>1){
+    document.getElementById('resName').innerHTML=
+      `${parts.slice(0,-1).join(' ')} <span>${parts[parts.length-1]}</span>`;
+  } else {
+    document.getElementById('resName').innerHTML=`<span>${parts[0]}</span>`;
+  }
+
+  // Animated score counter
+  let n=0;
+  const numEl=document.getElementById('ringNum');
+  const iv=setInterval(()=>{ n+=Math.ceil(val/45); if(n>=val){n=val;clearInterval(iv);} numEl.textContent=n; },25);
+
+  // Ring
+  const circ=2*Math.PI*85; // ≈ 534
+  setTimeout(()=>{
+    const offset=circ*(1-val/100);
+    const rfg=document.getElementById('ringFg');
+    rfg.style.strokeDashoffset=offset;
+    const rc=val>=80?'#39ff8a':val>=60?'#00e5ff':val>=40?'#ff8c00':'#ff3366';
+    rfg.style.stroke=rc;
+    rfg.style.filter=`drop-shadow(0 0 10px ${rc})`;
+  },200);
+
+  // Grade
+  const {lbl,bg,col}=getGrade(val);
+  const gp=document.getElementById('gradePlate');
+  gp.textContent=lbl; gp.style.background=bg; gp.style.color=col; gp.style.border=`1px solid ${col}`;
+
+  // Breakdown
+  setTimeout(()=>{
+    [['m','bdM','bfM','bpM'],['f','bdF','bfF','bpF'],['k','bdK','bfK','bpK'],['b','bdB','bfB','bpB']]
+    .forEach(([s,bid,fid,pid])=>{
+      const sc=SC[s];
+      document.getElementById(bid).innerHTML=`${sc} <small>/15</small>`;
+      document.getElementById(pid).textContent=`${sc} benar · ${Math.round(sc/15*100)}%`;
+      setTimeout(()=>document.getElementById(fid).style.width=`${sc/15*100}%`,100);
+    });
+  },400);
+
+  // Review pips
+  const rp=document.getElementById('reviewPips'); rp.innerHTML='';
+  QDB.forEach((_,i)=>{
+    const pip=document.createElement('div');
+    const ans=answers[i];
+    pip.className=`r-pip ${ans===undefined?'skip':ans===QDB[i].a?'ok':'bad'}`;
+    pip.title=`Soal ${i+1}`;
+    pip.textContent=i+1;
+    rp.appendChild(pip);
+  });
+
+  if(val>=70) launchConfetti();
+}
+
+function getGrade(v){
+  if(v>=90) return{lbl:'A⁺ SEMPURNA',   bg:'rgba(57,255,138,.1)',  col:'#39ff8a'};
+  if(v>=80) return{lbl:'A  SANGAT BAIK', bg:'rgba(0,229,255,.1)',   col:'#00e5ff'};
+  if(v>=70) return{lbl:'B  BAIK',        bg:'rgba(217,70,239,.1)',  col:'#d946ef'};
+  if(v>=60) return{lbl:'C  CUKUP',       bg:'rgba(255,140,0,.1)',   col:'#ff8c00'};
+  if(v>=40) return{lbl:'D  KURANG',      bg:'rgba(255,51,102,.1)',  col:'#ff3366'};
+  return            {lbl:'E  ULANGI',    bg:'rgba(255,51,102,.08)', col:'#ff3366'};
+}
+
+/* ════════════════════════════════════════════
+   VISUAL FX
+════════════════════════════════════════════ */
+function burst(el, color){
+  const r=el.getBoundingClientRect();
+  const cx=r.left+r.width/2, cy=r.top+r.height/2;
+  for(let i=0;i<18;i++){
+    const p=document.createElement('div');
+    p.className='par';
+    const sz=3+Math.random()*5;
+    p.style.cssText=`left:${cx}px;top:${cy}px;width:${sz}px;height:${sz}px;background:${color};box-shadow:0 0 8px ${color}`;
+    const ang=(i/18)*Math.PI*2;
+    const d=45+Math.random()*80;
+    const tx=Math.cos(ang)*d, ty=Math.sin(ang)*d;
+    const dur=300+Math.random()*350;
+    document.body.appendChild(p);
+    p.animate([
+      {transform:'translate(-50%,-50%) scale(1)',opacity:1},
+      {transform:`translate(calc(-50% + ${tx}px),calc(-50% + ${ty}px)) scale(0)`,opacity:0}
+    ],{duration:dur,easing:'ease-out',fill:'forwards'}).onfinish=()=>p.remove();
+  }
+}
+
+function launchConfetti(){
+  const PAL=['#00e5ff','#d946ef','#39ff8a','#ff8c00','#ffffff','#ff3366'];
+  for(let i=0;i<120;i++){
+    setTimeout(()=>{
+      const c=document.createElement('div'); c.className='cfp';
+      const col=PAL[Math.floor(Math.random()*PAL.length)];
+      const w=5+Math.random()*8, h=w*1.7;
+      c.style.cssText=`left:${Math.random()*100}vw;top:-25px;width:${w}px;height:${h}px;background:${col}`;
+      const dur=1800+Math.random()*2200;
+      document.body.appendChild(c);
+      c.animate([
+        {transform:`translate(0,0) rotate(${Math.random()*360}deg)`,opacity:1},
+        {transform:`translate(${(Math.random()-.5)*240}px,${innerHeight+60}px) rotate(${540+Math.random()*720}deg)`,opacity:0}
+      ],{duration:dur,easing:'cubic-bezier(.4,0,.85,1)',fill:'forwards'}).onfinish=()=>c.remove();
+    },i*22);
+  }
+}
+
+/* ════════════════════════════════════════════
+   AUDIO
+════════════════════════════════════════════ */
+let ac=null;
+function beep(freq,dur){
+  try{
+    if(!ac) ac=new(window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.frequency.value=freq; o.type='sine';
+    g.gain.setValueAtTime(.13,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+dur);
+    o.start(); o.stop(ac.currentTime+dur);
+  }catch(e){}
+}
+
+/* ════════════════════════════════════════════
+   INTRO TILE HOVER FX
+════════════════════════════════════════════ */
+document.querySelectorAll('.sub-tile').forEach(tile=>{
+  const map={m:'rgba(0,229,255,.08)',f:'rgba(217,70,239,.08)',k:'rgba(57,255,138,.08)',b:'rgba(255,140,0,.08)'};
+  tile.addEventListener('mouseenter',()=>tile.style.background=map[tile.dataset.s]);
+  tile.addEventListener('mouseleave',()=>tile.style.background='');
+});
+</script>
+</body>
+</html>
